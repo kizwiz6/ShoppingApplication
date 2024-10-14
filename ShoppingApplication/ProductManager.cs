@@ -146,7 +146,7 @@ namespace ShoppingApplication
             }
         }
 
-        public void DisplayAllProducts(string sortBy = "name")
+        public void DisplayAllProducts(string sortBy = "name", int pageNumber = 1, int pageSize = 5)
         {
             var allProducts = productRepository.GetAllProducts();
 
@@ -164,22 +164,59 @@ namespace ShoppingApplication
                     break;
             }
 
-            if (allProducts.Any())
+            // Calculate total number of pages
+            int totalPages = allProducts.Count();
+            int totalPage = (int)Math.Ceiling((double)totalPages / pageSize);
+
+            // Validate page number
+            if (pageNumber < 1 || pageNumber > totalPages)
             {
-                // Main logic of displaying products
-                Console.WriteLine("Product Catalog:");
-                foreach (var product in allProducts)
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Invalid page number");
+                Console.ResetColor();
+                return;
+            }
+
+            // Get products for the current page
+            var productsToDisplay = allProducts.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+
+            if (productsToDisplay.Any())
+            {
+                Console.WriteLine($"Product Catalog (Page {pageNumber}/{totalPages}):");
+                foreach (var product in productsToDisplay)
                 {
                     Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description}) [Category: {product.Category}]");
                 }
-                Console.ResetColor();
             }
             else
             {
-                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("No products available in the catalog.");
-                Console.ResetColor();
-                return;
+            }
+
+            // Display pagination options
+            if (totalPages > 1)
+            {
+                Console.WriteLine("Navigation: (N)ext, (P)revious, or enter a page number to jump to a specific page.");
+                string input = Console.ReadLine();
+
+                if (input.Equals("N", StringComparison.OrdinalIgnoreCase) && pageNumber < totalPages)
+                {
+                    DisplayAllProducts(sortBy, pageNumber + 1, pageSize);
+                }
+                else if (input.Equals("P", StringComparison.OrdinalIgnoreCase) && pageNumber > 1)
+                {
+                    DisplayAllProducts(sortBy, pageNumber - 1, pageSize);
+                }
+                else if (int.TryParse(input, out int newPageNumber) && newPageNumber >= 1 && newPageNumber <= totalPages)
+                {
+                    DisplayAllProducts(sortBy, newPageNumber, pageSize);
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Invalid input.");
+                    Console.ResetColor();
+                }
             }
         }
 
