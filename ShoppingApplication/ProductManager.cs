@@ -146,9 +146,23 @@ namespace ShoppingApplication
             }
         }
 
-        public void DisplayAllProducts()
+        public void DisplayAllProducts(string sortBy = "name")
         {
             var allProducts = productRepository.GetAllProducts();
+
+            // Sort the products based on the specified criteria
+            switch (sortBy.ToLower())
+            {
+                case "price":
+                    allProducts = allProducts.OrderBy(p => p.Price).ToList();
+                    break;
+                case "category":
+                    allProducts = allProducts.OrderBy(p => p.Category).ToList();
+                    break;
+                default:
+                    allProducts = allProducts.OrderBy(p => p.Name).ToList();
+                    break;
+            }
 
             if (allProducts.Any())
             {
@@ -316,7 +330,5 @@ namespace ShoppingApplication
                 Console.ResetColor();
             }
         }
-
-
     }
 }
