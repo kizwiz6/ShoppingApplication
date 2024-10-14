@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog;
+using System;
 
 namespace ShoppingApplication
 {
@@ -7,22 +8,38 @@ namespace ShoppingApplication
     /// </summary>
     public class Program
     {
+        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// The main method that initializes the application.
         /// </summary>
         /// <param name="args">Command line arguments.</param>
         public static void Main(string[] args)
         {
-            IProductRepository productRepository = new ProductRepository();
-            IProductManager productManager = new ProductManager(productRepository);
+            LogManager.LoadConfiguration("nlog.config"); // Load NLog configuration from file
+            logger.Debug("Debug logging initialised."); // Test log entry
 
-            // Clear console and display welcome message
-            Console.Clear();
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("Welcome to the Shopping Application!\n");
-            Console.ResetColor();
+            try
+            {
+                logger.Info("Application started.");
+                IProductRepository productRepository = new ProductRepository();
+                IProductManager productManager = new ProductManager(productRepository);
 
-            ShowMainMenu(productManager);
+                // Clear console and display welcome message
+                Console.Clear();
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("Welcome to the Shopping Application!\n");
+                Console.ResetColor();
+
+                ShowMainMenu(productManager);
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"An error occurred: {ex.Message}");
+                Console.ResetColor();
+                logger.Error(ex, "Application failed to start."); // Log application startup error
+            }
         }
 
         /// <summary>

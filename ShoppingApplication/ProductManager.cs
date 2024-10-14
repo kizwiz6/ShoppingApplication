@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NLog;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ namespace ShoppingApplication
     public class ProductManager : IProductManager
     {
         private readonly IProductRepository productRepository;
+        private readonly ILogger logger = LogManager.GetCurrentClassLogger();
 
         public ProductManager(IProductRepository productRepository)
         {
@@ -18,86 +20,21 @@ namespace ShoppingApplication
         /// <summary>
         /// Adds a new product to the product catalog.
         /// Ensures input validation for Product ID, Product Name, Product Price, and Product Description.
+        /// Allows user to return to the main menu by typing 'back'.
         /// </summary>
         public void AddProduct()
         {
             try
             {
+                logger.Info("Attempting to add a new product.");  // Log attempt to add a new product
                 Console.WriteLine("\n=== Add a New Product ===");
 
-                string newId;
+                string newId = GetProductId();
+                if (newId == null) return; // User chose to go back to the main menu.
 
-                // Validate Product ID
-                do
-                {
-                    Console.Write("Enter Product ID: ");
-                    newId = Console.ReadLine();
-
-                    if (newId.ToLower() == "back")
-                    {
-                        Console.WriteLine("Returning to main menu...");
-                        return; // Exit AddProduct and go back to the main menu.
-                    }
-
-                    if (string.IsNullOrEmpty(newId))
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Product ID cannot be empty.");
-                        Console.ResetColor();
-                    }
-                    else if (productRepository.ProductExists(newId))
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine($"Product with ID {newId} already exists.");
-                        Console.ResetColor();
-                        newId = null; // Force another attempt
-                    }
-                } while (string.IsNullOrWhiteSpace(newId));
-
-                // Validate Product Name
-                string newName;
-                do
-                {
-                    Console.Write("Enter Product Name: ");
-                    newName = Console.ReadLine();
-
-                    if (string.IsNullOrWhiteSpace(newName))
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Product Name cannot be empty.");
-                        Console.ResetColor();
-                    }
-                } while (string.IsNullOrWhiteSpace(newName));
-
-                // Validate Product Price
-                decimal newPrice;
-                do
-                {
-                    Console.Write("Enter Product Price: ");
-                    string priceInput = Console.ReadLine();
-
-                    if (!decimal.TryParse(priceInput, out newPrice) || newPrice < 0)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Invalid price. Please enter a valid non-negative decimal number.");
-                        Console.ResetColor();
-                    }
-                } while (newPrice < 0);
-
-                // Validate Product Description
-                string newDescription;
-                do
-                {
-                    Console.Write("Enter Product Description: ");
-                    newDescription = Console.ReadLine();
-
-                    if (string.IsNullOrWhiteSpace(newDescription))
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Product Description cannot be empty.");
-                        Console.ResetColor();
-                    }
-                } while (string.IsNullOrWhiteSpace(newDescription));
+                string newName = GetProductName();
+                decimal newPrice = GetProductPrice();
+                string newDescription = GetProductDescription();
 
                 // Create and add the new product to the repository
                 var newProduct = new Product(newId, newName, newPrice, newDescription);
@@ -107,19 +44,15 @@ namespace ShoppingApplication
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Product added successfully!");
                 Console.ResetColor();
-            }
-            catch (FormatException ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error: Invalid input format. {ex.Message}");
-                Console.ResetColor();
-                throw;
+
+                logger.Info($"Product added: ID={newId}, Name={newName}, Price={newPrice}, Description={newDescription}");  // Log successful addition
             }
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"An unexpected error occurred: {ex.Message}");
                 Console.ResetColor();
+                logger.Error(ex, "Error occurred while adding a product.");  // Log error
             }
         }
 
@@ -203,6 +136,121 @@ namespace ShoppingApplication
                 Console.WriteLine("No products available in the catalog.");
                 return;
             }
+        }
+
+        /// <summary>
+        /// Prompts the user to enter a Product ID and validates the input.
+        /// </summary>
+        /// <returns>The validated Product ID or null if the user chooses to go back.</returns>
+        private string GetProductId()
+        {
+            string newId;
+            do
+            {
+                Console.Write("Enter Product ID (type 'back' to return): ");
+                newId = Console.ReadLine();
+
+                if (newId.ToLower() == "back")
+                {
+                    Console.WriteLine("Returning to main menu...");
+                    logger.Info("User chose to return to the main menu while entering Product ID.");  // Log back action
+                    return null; // Indicates user wants to go back.
+                }
+
+                if (string.IsNullOrEmpty(newId))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Product ID cannot be empty.");
+                    Console.ResetColor();
+                    logger.Warn("Empty Product ID entered.");  // Log warning
+                }
+                else if (productRepository.ProductExists(newId))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"Product with ID {newId} already exists.");
+                    Console.ResetColor();
+                    logger.Warn($"Product with ID {newId} already exists.");  // Log warning
+                    newId = null; // Force another attempt
+                }
+            } while (string.IsNullOrWhiteSpace(newId));
+
+            logger.Info($"Product ID validated: {newId}");  // Log successful validation
+            return newId;
+        }
+
+        /// <summary>
+        /// Prompts the user to enter a Product Name and validates the input.
+        /// </summary>
+        /// <returns>The validated Product Name.</returns>
+        private string GetProductName()
+        {
+            string newName;
+            do
+            {
+                Console.Write("Enter Product Name: ");
+                newName = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(newName))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Product Name cannot be empty.");
+                    Console.ResetColor();
+                    logger.Warn("Empty Product Name entered.");  // Log warning
+                }
+            } while (string.IsNullOrWhiteSpace(newName));
+
+            logger.Info($"Product Name validated: {newName}");  // Log successful validation
+            return newName;
+        }
+
+        /// <summary>
+        /// Prompts the user to enter a Product Price and validates the input.
+        /// </summary>
+        /// <returns>The validated Product Price as a decimal.</returns>
+        private decimal GetProductPrice()
+        {
+            decimal newPrice;
+            do
+            {
+                Console.Write("Enter Product Price: ");
+                string priceInput = Console.ReadLine();
+
+                if (!decimal.TryParse(priceInput, out newPrice) || newPrice < 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Invalid price. Please enter a valid non-negative decimal number.");
+                    Console.ResetColor();
+                    logger.Warn($"Invalid price entered: {priceInput}");  // Log warning
+                }
+            } while (newPrice < 0);
+
+            logger.Info($"Product Price validated: {newPrice}");  // Log successful validation
+            return newPrice;
+        }
+
+        /// <summary>
+        /// Prompts the user to enter a Product Description and validates the input.
+        /// </summary>
+        /// <returns>The validated Product Description.</returns>
+        private string GetProductDescription()
+        {
+            string newDescription;
+            do
+            {
+                Console.Write("Enter Product Description: ");
+                newDescription = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(newDescription))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Product Description cannot be empty.");
+                    Console.ResetColor();
+                    logger.Warn("Empty Product Description entered.");  // Log warning
+                }
+            } while (string.IsNullOrWhiteSpace(newDescription));
+
+            logger.Info($"Product Description validated: {newDescription}");  // Log successful validation
+            return newDescription;
         }
     }
 }
