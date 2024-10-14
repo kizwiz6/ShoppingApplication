@@ -12,5 +12,6 @@ namespace ShoppingApplication
         void UpdateProduct(); // No parameter, handled in method
         void RemoveProduct(); // No parameter, handled in method
         void DisplayAllProducts(); // Just displays products, no arguments needed
+        void SearchProducts(); // Method for searching products
     }
 }

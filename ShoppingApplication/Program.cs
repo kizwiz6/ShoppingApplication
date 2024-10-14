@@ -59,7 +59,8 @@ namespace ShoppingApplication
                 Console.WriteLine("2. Add a product");
                 Console.WriteLine("3. Update a product");
                 Console.WriteLine("4. Remove a product");
-                Console.WriteLine("5. Exit");
+                Console.WriteLine("5. Search for a product");
+                Console.WriteLine("6. Exit");
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("=============================");
                 Console.ResetColor();
@@ -85,6 +86,9 @@ namespace ShoppingApplication
                             productManager.RemoveProduct();
                             break;
                         case 5:
+                           productManager.SearchProducts();
+                            break;
+                        case 6:
                             // Exit the application
                             Console.ForegroundColor = ConsoleColor.Green;
                             Console.WriteLine("Thank you for using the Shopping Application! Goodbye.");

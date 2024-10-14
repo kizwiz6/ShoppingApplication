@@ -252,5 +252,39 @@ namespace ShoppingApplication
             logger.Info($"Product Description validated: {newDescription}");  // Log successful validation
             return newDescription;
         }
+        public void SearchProducts()
+        {
+            Console.WriteLine("\n=== Search Products ===");
+            Console.Write("Enter a keyword (Product ID or Name): ");
+            string keyword = Console.ReadLine();
+
+            // Get all products from the repository
+            var allProducts = productRepository.GetAllProducts();
+
+            // Filter products based on the search keyword
+            var searchResults = allProducts.Where(p =>
+                p.Id.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            // Display search results
+            if (searchResults.Any())
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("Search Results:");
+                foreach (var product in searchResults)
+                {
+                    Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description})");
+                }
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("No products found matching your search criteria.");
+                Console.ResetColor();
+            }
+        }
+
+
     }
 }
