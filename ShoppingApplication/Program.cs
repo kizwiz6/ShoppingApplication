@@ -92,19 +92,35 @@ namespace ShoppingApplication
                             return; // Exit the loop and terminate the program
                         default:
                             // Handle invalid input
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine("Invalid choice. Please try again.");
-                            Console.ResetColor();
+                            HandleInvalidChoice();
                             break;
                     }
                 }
                 else
                 {
                     // Handle invalid input
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Invalid choice. Please try again.");
-                    Console.ResetColor();
+                    HandleInvalidChoice();
                 }
+            }
+        }
+        /// <summary>
+        /// Handles invalid menu choices by notifying the user and giving them an option to continue or exit.
+        /// </summary>
+        private static void HandleInvalidChoice()
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("Invalid choice. Please try again.");
+            Console.ResetColor();
+
+            Console.Write("Would you like to continue (y/n)? ");
+            string response = Console.ReadLine();
+
+            if (response?.Trim().ToLower() != "y")
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Thank you for using the Shopping Application! Goodbye.");
+                Console.ResetColor();
+                Environment.Exit(0); // Exit the application
             }
         }
     }
