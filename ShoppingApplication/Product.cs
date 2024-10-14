@@ -13,6 +13,7 @@ namespace ShoppingApplication
         public decimal Price { get; set; }
         public string Description { get; set; }
         public string Category { get; set; }
+        public List<Review> Reviews { get; } = new List<Review>();
 
         public Product(string id, string name, decimal price, string description, string category)
         {
@@ -21,6 +22,16 @@ namespace ShoppingApplication
             Price = price;
             Description = description;
             Category = category;
+        }
+
+        public void AddReview(Review review)
+        {
+            Reviews.Add(review);
+        }
+
+        public double AverageRating()
+        {
+            return Reviews.Any() ? Reviews.Average(r => r.Rating) : 0;
         }
     }
 }

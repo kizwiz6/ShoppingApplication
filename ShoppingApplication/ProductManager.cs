@@ -367,5 +367,68 @@ namespace ShoppingApplication
                 Console.ResetColor();
             }
         }
+
+        public void AddReviewToProduct()
+        {
+            Console.Write("Enter Product ID to review: ");
+            string productId = Console.ReadLine();
+            var product = productRepository.GetProductById(productId);
+
+            if (product == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Product with ID {productId} not found.");
+                Console.ResetColor();
+                return;
+            }
+
+            Console.Write("Enter your name: ");
+            string userName = Console.ReadLine();
+
+            Console.Write("Enter your rating (1-5): ");
+            int rating;
+            while (!int.TryParse(Console.ReadLine(), out rating) || rating < 1 || rating > 5)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Invalid rating. Please enter a number between 1 and 5.");
+                Console.ResetColor();
+            }
+
+            Console.Write("Enter your review comment: ");
+            string comment = Console.ReadLine();
+
+            var review = new Review(userName, rating, comment);
+            product.AddReview(review);
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Review added successfully!");
+            Console.ResetColor();
+        }
+
+        public void DisplayProductReviews()
+        {
+            Console.Write("Enter Product ID to view reviews: ");
+            string productId = Console.ReadLine();
+            var product = productRepository.GetProductById(productId);
+
+            if (product == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Product with ID {productId} not found.");
+                Console.ResetColor();
+                return;
+            }
+
+            Console.WriteLine($"Reviews for {product.Name}:");
+            foreach (var review in product.Reviews)
+            {
+                Console.WriteLine($"- {review.User} rated {review.Rating}/5: {review.Comment} (on {review.Date})");
+            }
+
+            if (!product.Reviews.Any())
+            {
+                Console.WriteLine("No reviews for this product yet.");
+            }
+        }
     }
 }

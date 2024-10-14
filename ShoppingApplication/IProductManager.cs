@@ -13,5 +13,7 @@ namespace ShoppingApplication
         void RemoveProduct(); // No parameter, handled in method
         void DisplayAllProducts(string sortBy = "name", int pageNumber = 1, int pageSize = 5); // Just displays products, no arguments needed
         void SearchProducts(); // Method for searching products
+        void AddReviewToProduct(); // Adding reviews
+        void DisplayProductReviews(); // Displaying reviews
     }
 }
