@@ -13,7 +13,8 @@ namespace ShoppingApplication
         public decimal Price { get; set; }
         public string Description { get; set; }
         public string Category { get; set; }
-        public List<Review> Reviews { get; } = new List<Review>();
+        public List<Review> Reviews { get; set; }
+
 
         public Product(string id, string name, decimal price, string description, string category)
         {
@@ -22,6 +23,7 @@ namespace ShoppingApplication
             Price = price;
             Description = description;
             Category = category;
+            Reviews = new List<Review>();
         }
 
         public void AddReview(Review review)
