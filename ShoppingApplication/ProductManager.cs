@@ -21,84 +21,106 @@ namespace ShoppingApplication
         /// </summary>
         public void AddProduct()
         {
-            Console.WriteLine("\n=== Add a New Product ===");
-
-            string newId;
-
-            // Validate Product ID
-            do
+            try
             {
-                Console.Write("Enter Product ID: ");
-                newId = Console.ReadLine();
+                Console.WriteLine("\n=== Add a New Product ===");
 
-                if (string.IsNullOrEmpty(newId))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Product ID cannot be empty.");
-                    Console.ResetColor();
-                }
-                else if (productRepository.ProductExists(newId))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Product with ID {newId} already exists.");
-                    Console.ResetColor();
-                    newId = null; // Force another attempt
-                }
-            } while (string.IsNullOrWhiteSpace(newId));
+                string newId;
 
-            // Validate Product Name
-            string newName;
-            do
+                // Validate Product ID
+                do
+                {
+                    Console.Write("Enter Product ID: ");
+                    newId = Console.ReadLine();
+
+                    if (newId.ToLower() == "back")
+                    {
+                        Console.WriteLine("Returning to main menu...");
+                        return; // Exit AddProduct and go back to the main menu.
+                    }
+
+                    if (string.IsNullOrEmpty(newId))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Product ID cannot be empty.");
+                        Console.ResetColor();
+                    }
+                    else if (productRepository.ProductExists(newId))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine($"Product with ID {newId} already exists.");
+                        Console.ResetColor();
+                        newId = null; // Force another attempt
+                    }
+                } while (string.IsNullOrWhiteSpace(newId));
+
+                // Validate Product Name
+                string newName;
+                do
+                {
+                    Console.Write("Enter Product Name: ");
+                    newName = Console.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(newName))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Product Name cannot be empty.");
+                        Console.ResetColor();
+                    }
+                } while (string.IsNullOrWhiteSpace(newName));
+
+                // Validate Product Price
+                decimal newPrice;
+                do
+                {
+                    Console.Write("Enter Product Price: ");
+                    string priceInput = Console.ReadLine();
+
+                    if (!decimal.TryParse(priceInput, out newPrice) || newPrice < 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Invalid price. Please enter a valid non-negative decimal number.");
+                        Console.ResetColor();
+                    }
+                } while (newPrice < 0);
+
+                // Validate Product Description
+                string newDescription;
+                do
+                {
+                    Console.Write("Enter Product Description: ");
+                    newDescription = Console.ReadLine();
+
+                    if (string.IsNullOrWhiteSpace(newDescription))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Product Description cannot be empty.");
+                        Console.ResetColor();
+                    }
+                } while (string.IsNullOrWhiteSpace(newDescription));
+
+                // Create and add the new product to the repository
+                var newProduct = new Product(newId, newName, newPrice, newDescription);
+                productRepository.AddProduct(newProduct);
+
+                // Confirmation message
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Product added successfully!");
+                Console.ResetColor();
+            }
+            catch (FormatException ex)
             {
-                Console.Write("Enter Product Name: ");
-                newName = Console.ReadLine();
-
-                if (string.IsNullOrWhiteSpace(newName))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Product Name cannot be empty.");
-                    Console.ResetColor();
-                }
-            } while (string.IsNullOrWhiteSpace(newName));
-
-            // Validate Product Price
-            decimal newPrice;
-            do
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Error: Invalid input format. {ex.Message}");
+                Console.ResetColor();
+                throw;
+            }
+            catch (Exception ex)
             {
-                Console.Write("Enter Product Price: ");
-                string priceInput = Console.ReadLine();
-
-                if (!decimal.TryParse(priceInput, out newPrice) || newPrice < 0)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Invalid price. Please enter a valid non-negative decimal number.");
-                    Console.ResetColor();
-                }
-            } while (newPrice < 0);
-
-            // Validate Product Description
-            string newDescription;
-            do
-            {
-                Console.Write("Enter Product Description: ");
-                newDescription = Console.ReadLine();
-
-                if (string.IsNullOrWhiteSpace(newDescription))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Product Description cannot be empty.");
-                    Console.ResetColor();
-                }
-            } while (string.IsNullOrWhiteSpace(newDescription));
-
-            // Create and add the new product to the repository
-            var newProduct = new Product(newId, newName, newPrice, newDescription);
-            productRepository.AddProduct(newProduct);
-
-            // Confirmation message
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Product added successfully!");
-            Console.ResetColor();
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+                Console.ResetColor();
+            }
         }
 
 
