@@ -8,11 +8,11 @@ namespace ShoppingApplication
 {
     public interface IProductRepository
     {
-        void AddProduct(Product product);
-        void UpdateProduct(Product product);
-        void RemoveProduct(string id);
-        Product GetProductById(string id);
-        IEnumerable<Product> GetAllProducts();
-        bool ProductExists(string id);
+        void AddProduct(Product product); // Adds a new product
+        void UpdateProduct(Product product); // Updates an existing product
+        void RemoveProduct(string id); // Removes a product by its ID
+        Product GetProductById(string id); // Retrieves a product by its ID
+        IEnumerable<Product> GetAllProducts(); // Retrieves all products
+        bool ProductExists(string id); // Checks if a product exists by its ID
     }
 }

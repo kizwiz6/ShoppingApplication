@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ShoppingApplication
 {
@@ -26,7 +24,7 @@ namespace ShoppingApplication
         {
             try
             {
-                logger.Info("Attempting to add a new product.");  // Log attempt to add a new product
+                logger.Info("Attempting to add a new product.");
                 Console.WriteLine("\n=== Add a New Product ===");
 
                 string newId = GetProductId();
@@ -35,40 +33,22 @@ namespace ShoppingApplication
                 string newName = GetProductName();
                 decimal newPrice = GetProductPrice();
                 string newDescription = GetProductDescription();
-                string newCategory;
-                do
-                {
-                    Console.Write("Enter Product Category:");
-                    newCategory = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(newCategory))
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("Product Category cannot be empty.");
-                        Console.ResetColor();
-                    }
-                }
-                while (string.IsNullOrWhiteSpace(newCategory));
+                string newCategory = GetNonEmptyInput("Enter Product Category:");
 
-                // Create and add the new product to the repository
                 var newProduct = new Product(newId, newName, newPrice, newDescription, newCategory);
                 productRepository.AddProduct(newProduct);
 
-                // Confirmation message
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Product added successfully!");
                 Console.ResetColor();
 
-                logger.Info($"Product added: ID={newId}, Name={newName}, Price={newPrice}, Description={newDescription}");  // Log successful addition
+                logger.Info($"Product added: ID={newId}, Name={newName}, Price={newPrice}, Description={newDescription}");
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
-                Console.ResetColor();
-                logger.Error(ex, "Error occurred while adding a product.");  // Log error
+                HandleError(ex);
             }
         }
-
 
         public void UpdateProduct()
         {
@@ -79,51 +59,23 @@ namespace ShoppingApplication
             var product = productRepository.GetProductById(updateId);
             if (product == null)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Product with ID {updateId} not found.");
-                Console.ResetColor();
+                NotifyNotFound(updateId);
                 return;
             }
 
             Console.WriteLine($"Current Product: {product.Name} - ${product.Price} ({product.Description})");
 
-            Console.Write("Enter new Product Name: ");
-            string updatedName = Console.ReadLine();
+            string updatedName = GetProductName();
+            decimal updatedPrice = GetProductPrice();
+            string updatedDescription = GetProductDescription();
+            string updatedCategory = GetNonEmptyInput("Enter new Product Category (leave blank to keep current):", product.Category);
 
-            Console.Write("Enter new Product Price: ");
-            if (!decimal.TryParse(Console.ReadLine(), out decimal updatedPrice))
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Invalid price. Please enter a valid decimal number.");
-                Console.ResetColor();
-                return;
-            }
-
-            Console.Write("Enter new Product Description: ");
-            string updatedDescription = Console.ReadLine();
-
-            string updatedCategory;
-            do
-            {
-                Console.Write("Enter new Product Category (leave blank to keep current): ");
-                updatedCategory = Console.ReadLine();
-                updatedCategory = string.IsNullOrWhiteSpace(updatedCategory) ? product.Category : updatedCategory;
-
-                if (string.IsNullOrWhiteSpace(updatedCategory))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Product Category cannot be empty.");
-                    Console.ResetColor();
-                }
-            } while (string.IsNullOrWhiteSpace(updatedCategory));
-
-            productRepository.UpdateProduct(new Product(updateId, updatedName, updatedPrice, updatedDescription, updatedCategory)); // Using UpdateProduct
+            productRepository.UpdateProduct(new Product(updateId, updatedName, updatedPrice, updatedDescription, updatedCategory));
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"Product {updateId} updated successfully.");
             Console.ResetColor();
         }
-
 
         public void RemoveProduct()
         {
@@ -140,44 +92,26 @@ namespace ShoppingApplication
             }
             else
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Product with ID {removeId} not found.");
-                Console.ResetColor();
+                NotifyNotFound(removeId);
             }
         }
 
-        public void DisplayAllProducts(string sortBy = "name", int pageNumber = 1, int pageSize = 5)
+        public IEnumerable<Product> DisplayAllProducts(string sortBy = "name", int pageNumber = 1, int pageSize = 5)
         {
             var allProducts = productRepository.GetAllProducts();
 
             // Sort the products based on the specified criteria
-            switch (sortBy.ToLower())
+            allProducts = sortBy.ToLower() switch
             {
-                case "price":
-                    allProducts = allProducts.OrderBy(p => p.Price).ToList();
-                    break;
-                case "category":
-                    allProducts = allProducts.OrderBy(p => p.Category).ToList();
-                    break;
-                default:
-                    allProducts = allProducts.OrderBy(p => p.Name).ToList();
-                    break;
-            }
+                "price" => allProducts.OrderBy(p => p.Price).ToList(),
+                "category" => allProducts.OrderBy(p => p.Category).ToList(),
+                _ => allProducts.OrderBy(p => p.Name).ToList(),
+            };
 
-            // Calculate total number of pages
-            int totalPages = allProducts.Count();
-            int totalPage = (int)Math.Ceiling((double)totalPages / pageSize);
+            int totalPages = (int)Math.Ceiling((double)allProducts.Count() / pageSize);
 
-            // Validate page number
-            if (pageNumber < 1 || pageNumber > totalPages)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Invalid page number");
-                Console.ResetColor();
-                return;
-            }
+            if (!ValidatePageNumber(pageNumber, totalPages)) return Enumerable.Empty<Product>();
 
-            // Get products for the current page
             var productsToDisplay = allProducts.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
             if (productsToDisplay.Any())
@@ -193,30 +127,187 @@ namespace ShoppingApplication
                 Console.WriteLine("No products available in the catalog.");
             }
 
-            // Display pagination options
-            if (totalPages > 1)
-            {
-                Console.WriteLine("Navigation: (N)ext, (P)revious, or enter a page number to jump to a specific page.");
-                string input = Console.ReadLine();
+            DisplayPaginationOptions(sortBy, pageNumber, totalPages, pageSize);
 
-                if (input.Equals("N", StringComparison.OrdinalIgnoreCase) && pageNumber < totalPages)
+            return productsToDisplay;
+        }
+
+        public void SearchProducts()
+        {
+            Console.WriteLine("\n=== Search Products ===");
+            Console.Write("Enter a keyword (Product ID or Name): ");
+            string keyword = Console.ReadLine();
+
+            var allProducts = productRepository.GetAllProducts();
+
+            var searchResults = allProducts.Where(p =>
+                p.Id.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                p.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (searchResults.Any())
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("Search Results:");
+                foreach (var product in searchResults)
                 {
-                    DisplayAllProducts(sortBy, pageNumber + 1, pageSize);
+                    Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description}) [Category: {product.Category}]");
                 }
-                else if (input.Equals("P", StringComparison.OrdinalIgnoreCase) && pageNumber > 1)
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("No products found matching your search criteria.");
+                Console.ResetColor();
+            }
+        }
+
+        public void AddReviewToProduct()
+        {
+            Console.Write("Enter Product ID to review: ");
+            string productId = Console.ReadLine();
+            var product = productRepository.GetProductById(productId);
+
+            if (product == null)
+            {
+                NotifyNotFound(productId);
+                return;
+            }
+
+            string userName = GetNonEmptyInput("Enter your name:");
+            int rating = GetRatingInput();
+            string comment = GetNonEmptyInput("Enter your review comment:");
+
+            var review = new Review(userName, rating, comment);
+            product.AddReview(review);
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Review added successfully!");
+            Console.ResetColor();
+        }
+
+        public void DisplayProductReviews()
+        {
+            Console.Write("Enter Product ID to view reviews: ");
+            string productId = Console.ReadLine();
+            var product = productRepository.GetProductById(productId);
+
+            if (product == null)
+            {
+                NotifyNotFound(productId);
+                return;
+            }
+
+            Console.WriteLine($"Reviews for {product.Name}:");
+            if (product.Reviews.Any())
+            {
+                foreach (var review in product.Reviews)
                 {
-                    DisplayAllProducts(sortBy, pageNumber - 1, pageSize);
+                    Console.WriteLine($"- {review.User} rated {review.Rating}/5: {review.Comment} (on {review.Date})");
                 }
-                else if (int.TryParse(input, out int newPageNumber) && newPageNumber >= 1 && newPageNumber <= totalPages)
+            }
+            else
+            {
+                Console.WriteLine("No reviews for this product yet.");
+            }
+        }
+
+        /// <summary>
+        /// Gets a non-empty input from the user, with an optional default value.
+        /// </summary>
+        /// <param name="prompt">The message to display to the user.</param>
+        /// <param name="defaultValue">The default value to use if the user inputs nothing.</param>
+        /// <returns>The validated input.</returns>
+        private string GetNonEmptyInput(string prompt, string defaultValue = "")
+        {
+            string input;
+            do
+            {
+                Console.Write(prompt);
+                input = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(input))
                 {
-                    DisplayAllProducts(sortBy, newPageNumber, pageSize);
+                    input = defaultValue;
                 }
-                else
+
+                if (string.IsNullOrWhiteSpace(input))
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Invalid input.");
+                    Console.WriteLine($"{prompt} cannot be empty.");
                     Console.ResetColor();
                 }
+            } while (string.IsNullOrWhiteSpace(input));
+
+            logger.Info($"{prompt.TrimEnd(':')} validated: {input}");
+            return input;
+        }
+
+        /// <summary>
+        /// Gets a valid rating from the user (1 to 5).
+        /// </summary>
+        /// <returns>The validated rating.</returns>
+        private int GetRatingInput()
+        {
+            int rating;
+            do
+            {
+                Console.Write("Enter your rating (1-5): ");
+                if (!int.TryParse(Console.ReadLine(), out rating) || rating < 1 || rating > 5)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Invalid rating. Please enter a number between 1 and 5.");
+                    Console.ResetColor();
+                }
+            } while (rating < 1 || rating > 5);
+
+            return rating;
+        }
+
+        /// <summary>
+        /// Notifies the user when a product is not found.
+        /// </summary>
+        /// <param name="productId">The ID of the product that was not found.</param>
+        private void NotifyNotFound(string productId)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Product with ID {productId} not found.");
+            Console.ResetColor();
+        }
+
+        private bool ValidatePageNumber(int pageNumber, int totalPages)
+        {
+            if (pageNumber < 1 || pageNumber > totalPages)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Invalid page number");
+                Console.ResetColor();
+                return false; // Indicates invalid page number
+            }
+            return true; // Indicates valid page number
+        }
+
+        private void DisplayPaginationOptions(string sortBy, int pageNumber, int totalPages, int pageSize)
+        {
+            Console.WriteLine("Navigation: (N)ext, (P)revious, or enter a page number to jump to a specific page.");
+            string input = Console.ReadLine();
+
+            if (input.Equals("N", StringComparison.OrdinalIgnoreCase) && pageNumber < totalPages)
+            {
+                DisplayAllProducts(sortBy, pageNumber + 1, pageSize);
+            }
+            else if (input.Equals("P", StringComparison.OrdinalIgnoreCase) && pageNumber > 1)
+            {
+                DisplayAllProducts(sortBy, pageNumber - 1, pageSize);
+            }
+            else if (int.TryParse(input, out int newPageNumber) && newPageNumber >= 1 && newPageNumber <= totalPages)
+            {
+                DisplayAllProducts(sortBy, newPageNumber, pageSize);
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Invalid input.");
+                Console.ResetColor();
             }
         }
 
@@ -259,7 +350,6 @@ namespace ShoppingApplication
             logger.Info($"Product ID validated: {newId}");  // Log successful validation
             return newId;
         }
-
         /// <summary>
         /// Prompts the user to enter a Product Name and validates the input.
         /// </summary>
@@ -277,7 +367,6 @@ namespace ShoppingApplication
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Product Name cannot be empty.");
                     Console.ResetColor();
-                    logger.Warn("Empty Product Name entered.");  // Log warning
                 }
             } while (string.IsNullOrWhiteSpace(newName));
 
@@ -296,15 +385,13 @@ namespace ShoppingApplication
             {
                 Console.Write("Enter Product Price: ");
                 string priceInput = Console.ReadLine();
-
-                if (!decimal.TryParse(priceInput, out newPrice) || newPrice < 0)
+                if (!decimal.TryParse(priceInput, out newPrice) || newPrice <= 0)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Invalid price. Please enter a valid non-negative decimal number.");
+                    Console.WriteLine("Invalid price. Please enter a positive decimal number.");
                     Console.ResetColor();
-                    logger.Warn($"Invalid price entered: {priceInput}");  // Log warning
                 }
-            } while (newPrice < 0);
+            } while (newPrice <= 0);
 
             logger.Info($"Product Price validated: {newPrice}");  // Log successful validation
             return newPrice;
@@ -316,119 +403,46 @@ namespace ShoppingApplication
         /// <returns>The validated Product Description.</returns>
         private string GetProductDescription()
         {
-            string newDescription;
-            do
+            Console.Write("Enter Product Description: ");
+            string newDescription = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(newDescription))
             {
-                Console.Write("Enter Product Description: ");
-                newDescription = Console.ReadLine();
-
-                if (string.IsNullOrWhiteSpace(newDescription))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Product Description cannot be empty.");
-                    Console.ResetColor();
-                    logger.Warn("Empty Product Description entered.");  // Log warning
-                }
-            } while (string.IsNullOrWhiteSpace(newDescription));
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Product Description cannot be empty.");
+                Console.ResetColor();
+                return GetProductDescription(); // Recursive call for re-entry
+            }
 
             logger.Info($"Product Description validated: {newDescription}");  // Log successful validation
             return newDescription;
         }
 
-        public void SearchProducts()
+        public void DisplayProductCatalog(IEnumerable<Product> products)
         {
-            Console.WriteLine("\n=== Search Products ===");
-            Console.Write("Enter a keyword (Product ID or Name): ");
-            string keyword = Console.ReadLine();
-
-            // Get all products from the repository
-            var allProducts = productRepository.GetAllProducts();
-
-            // Filter products based on the search keyword
-            var searchResults = allProducts.Where(p =>
-                p.Id.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                p.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            // Display search results
-            if (searchResults.Any())
+            if (products == null || !products.Any())
             {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("Search Results:");
-                foreach (var product in searchResults)
-                {
-                    Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description}) [Category: {product.Category}]");
-                }
-                Console.ResetColor();
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("No products found matching your search criteria.");
-                Console.ResetColor();
-            }
-        }
-
-        public void AddReviewToProduct()
-        {
-            Console.Write("Enter Product ID to review: ");
-            string productId = Console.ReadLine();
-            var product = productRepository.GetProductById(productId);
-
-            if (product == null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Product with ID {productId} not found.");
-                Console.ResetColor();
+                Console.WriteLine("No products available in the catalog.");
                 return;
             }
 
-            Console.Write("Enter your name: ");
-            string userName = Console.ReadLine();
-
-            Console.Write("Enter your rating (1-5): ");
-            int rating;
-            while (!int.TryParse(Console.ReadLine(), out rating) || rating < 1 || rating > 5)
+            Console.WriteLine("Product Catalog:");
+            foreach (var product in products)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Invalid rating. Please enter a number between 1 and 5.");
-                Console.ResetColor();
+                Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description}) [Category: {product.Category}]");
             }
-
-            Console.Write("Enter your review comment: ");
-            string comment = Console.ReadLine();
-
-            var review = new Review(userName, rating, comment);
-            product.AddReview(review);
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Review added successfully!");
-            Console.ResetColor();
         }
 
-        public void DisplayProductReviews()
+        public void HandleError(Exception ex)
         {
-            Console.Write("Enter Product ID to view reviews: ");
-            string productId = Console.ReadLine();
-            var product = productRepository.GetProductById(productId);
+            // Log the error message (this can be enhanced with more details)
+            Console.WriteLine($"An error occurred: {ex.Message}");
 
-            if (product == null)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Product with ID {productId} not found.");
-                Console.ResetColor();
-                return;
-            }
+            // Optionally, you can log the stack trace or other relevant information
+            Console.WriteLine(ex.StackTrace);
 
-            Console.WriteLine($"Reviews for {product.Name}:");
-            foreach (var review in product.Reviews)
-            {
-                Console.WriteLine($"- {review.User} rated {review.Rating}/5: {review.Comment} (on {review.Date})");
-            }
-
-            if (!product.Reviews.Any())
-            {
-                Console.WriteLine("No reviews for this product yet.");
-            }
+            // Provide user feedback if necessary
+            Console.WriteLine("Please try again or contact support if the issue persists.");
         }
+
     }
 }

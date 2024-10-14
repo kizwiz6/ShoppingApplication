@@ -74,7 +74,8 @@ namespace ShoppingApplication
                     switch (option)
                     {
                         case 1:
-                            productManager.DisplayAllProducts();
+                            var products = productManager.DisplayAllProducts();
+                            productManager.DisplayProductCatalog(products);
                             break;
                         case 2:
                             productManager.AddProduct();
