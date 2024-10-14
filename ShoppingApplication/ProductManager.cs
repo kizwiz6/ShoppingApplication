@@ -35,9 +35,22 @@ namespace ShoppingApplication
                 string newName = GetProductName();
                 decimal newPrice = GetProductPrice();
                 string newDescription = GetProductDescription();
+                string newCategory;
+                do
+                {
+                    Console.Write("Enter Product Category:");
+                    newCategory = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(newCategory))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Product Category cannot be empty.");
+                        Console.ResetColor();
+                    }
+                }
+                while (string.IsNullOrWhiteSpace(newCategory));
 
                 // Create and add the new product to the repository
-                var newProduct = new Product(newId, newName, newPrice, newDescription);
+                var newProduct = new Product(newId, newName, newPrice, newDescription, newCategory);
                 productRepository.AddProduct(newProduct);
 
                 // Confirmation message
@@ -89,7 +102,22 @@ namespace ShoppingApplication
             Console.Write("Enter new Product Description: ");
             string updatedDescription = Console.ReadLine();
 
-            productRepository.UpdateProduct(new Product(updateId, updatedName, updatedPrice, updatedDescription)); // Using UpdateProduct
+            string updatedCategory;
+            do
+            {
+                Console.Write("Enter new Product Category (leave blank to keep current): ");
+                updatedCategory = Console.ReadLine();
+                updatedCategory = string.IsNullOrWhiteSpace(updatedCategory) ? product.Category : updatedCategory;
+
+                if (string.IsNullOrWhiteSpace(updatedCategory))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Product Category cannot be empty.");
+                    Console.ResetColor();
+                }
+            } while (string.IsNullOrWhiteSpace(updatedCategory));
+
+            productRepository.UpdateProduct(new Product(updateId, updatedName, updatedPrice, updatedDescription, updatedCategory)); // Using UpdateProduct
 
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"Product {updateId} updated successfully.");
@@ -128,12 +156,15 @@ namespace ShoppingApplication
                 Console.WriteLine("Product Catalog:");
                 foreach (var product in allProducts)
                 {
-                    Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description})");
+                    Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description}) [Category: {product.Category}]");
                 }
+                Console.ResetColor();
             }
             else
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("No products available in the catalog.");
+                Console.ResetColor();
                 return;
             }
         }
@@ -252,6 +283,7 @@ namespace ShoppingApplication
             logger.Info($"Product Description validated: {newDescription}");  // Log successful validation
             return newDescription;
         }
+
         public void SearchProducts()
         {
             Console.WriteLine("\n=== Search Products ===");
@@ -273,7 +305,7 @@ namespace ShoppingApplication
                 Console.WriteLine("Search Results:");
                 foreach (var product in searchResults)
                 {
-                    Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description})");
+                    Console.WriteLine($"{product.Id}: {product.Name} - ${product.Price} ({product.Description}) [Category: {product.Category}]");
                 }
                 Console.ResetColor();
             }
